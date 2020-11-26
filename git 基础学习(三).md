@@ -128,3 +128,69 @@ Your branch is ahead of 'origin/master' by 1 commit.
   (use "git push" to publish your local commits)
 ```
 
+#### 解决冲突
+
+创建新的 `featurel` 分支
+
+修改 `readme.txt` ，并在 `featurel` 分支上提交，切换到 `master` 分支：
+
+```shell
+$ git switch master
+Switched to branch 'master'
+Your branch is ahead of 'origin/master' by 1 commit.
+  (use "git push" to publish your local commits)
+```
+
+Git还会自动提示我们当前`master`分支比远程的`master`分支要超前1个提交。 
+
+在 `master` 分支上继续对 `readme.txt` 文件进行修改，并提交。
+
+此时，`master` 分支和 `featurel` 分支各自都分别有新的提交。（即在分支 `featurel` 上的修改与 `master` 还没有合并时，`master` 分支上又进行了修改）Git 的快速合并在这种情况下无法执行，可以试图将各自的修改进行合并，但有可能发生冲突。
+
+```shell
+$ git merge feature1
+Auto-merging readme.txt
+CONFLICT (content): Merge conflict in readme.txt
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Git告诉我们，`readme.txt`文件存在冲突，必须手动解决冲突后再提交。 
+
+Git会用`<<<<<<<`，`=======`，`>>>>>>>`标记出不同分支的内容 ：（readme.txt 中的内容）
+
+```
+Git is a distributed version control system.
+Git is free software distributed under the GPL.
+Git has a mutable index called stage.
+Git tracks changes of files.
+<<<<<<< HEAD
+Creating a new branch is quick & simple.
+=======
+Creating a new branch is quick AND simple.
+>>>>>>> feature1
+```
+
+此时，进行提交：
+
+```shell
+$ git add readme.txt 
+$ git commit -m "conflict fixed"
+[master cf810e4] conflict fixed
+```
+
+现在，`master` 分支和 `featurel` 分支变成了下图：
+
+![1606381791562](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\1606381791562.png)
+
+最后，删除 `featurel` 分支：
+
+```shell
+$ git branch -d feature1
+```
+
+**总结：** 解决冲突就是把Git合并失败的文件手动编辑为我们希望的内容，再提交。 
+
+用`git log --graph`命令可以看到分支合并图。 
+
+#### 分支管理策略
+
