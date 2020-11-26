@@ -44,7 +44,7 @@ $ git branch
 2、现在就可以在 `dev` 分支上正常提交：
 
 ```shell
-$ git add readme.txt 
+$ git add readme.txt  
 $ git commit -m "branch test"
 ```
 
