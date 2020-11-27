@@ -69,7 +69,7 @@ $ git merge dev
 $ git branch -d dev
 ```
 
-#### switch
+#### **switch**
 
 最新版本的 Git 提供了 `git switch` 吗，命令来切换分支：
 
@@ -193,4 +193,215 @@ $ git branch -d feature1
 用`git log --graph`命令可以看到分支合并图。 
 
 #### 分支管理策略
+
+通常，合并分支时，如果可能，Git 会用 `Fast forward` 模式，这种模式下删除分支后，回丢掉分支信息。如果强制禁用 `Fast forward` 模式，Git 就会在 merge 时生成一个新的 commit，这样，从分支历史上就可以看出分支信息。
+
+**--on-ff 方式的 git merge**
+
+1、创建并切换到 `dev` 分支
+
+2、修改 `readme.txt` 文件，并提交一个新的 commit
+
+3、切换到 `master` 
+
+4、准备合并 `dev` 分支，注意 `--on-ff` 参数，表示禁用 `Fast forward`:
+
+```
+$ git merge --no-ff -m "merge with no-ff" dev
+Merge made by the 'recursive' strategy.
+ readme.txt | 1 +
+  1 file changed, 1 insertion(+)
+```
+
+ 因为本次合并要创建一个新的commit，所以加上`-m`参数，把commit描述写进去。 
+
+然后可以使用 `git log` 查看分支历史：
+
+```shell
+$ git log --graph --pretty=oneline --abbrev-commit
+```
+
+#### Bug 分支
+
+在 Git 中，可以为每个 Bug 创建一个临时分支，修复后在进行合并。
+
+当遇到 Bug 时，想要创建一个 `issue-bug` 分支来修复它，但是 `dev` 分支上的工作还没有提交。Git 提供了一个 `stash` 功能，可以把当前工作现场“储藏”起来，等恢复现场后继续工作：
+
+```shell
+$ git stash
+```
+
+修复 Bug 步骤：
+
+1、确定要在那个分支上修复 bug，假定要在 `master` 分支上修复，就从 `master` 创建临时分支：
+
+```shell
+$ git checkout master
+
+$ git checkout -b issue-bug
+```
+
+2、修改好 Bug 后提交（`git add` 命令和 `git commit`命令）
+
+```shell
+$ git add readme.txt 
+$ git commit -m "fix bug 101"
+[issue-bug 4c805e2] fix bug 101
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+```
+
+3、 切换到 `master` 分支，并完成合并，最后删除 `issue-bug`  分支：
+
+```shell
+$ git switch master
+
+$ git merge --no-ff -m "merged bug fix 101" issue-101
+```
+
+4、继续回到 `dev` 继续开发，此时的 `dev` 分支工作区是干净的：
+
+```shell
+$ git switch dev
+Switched to branch 'dev'
+
+$ git status
+On branch dev
+nothing to commit, working tree clean
+```
+
+使用 `git stash list` 命令可以查看保存工作现场的地方：
+
+```shell
+$ git stash list
+stash@{0}: WIP on dev: f52c633 add merge
+```
+
+5、恢复 `git stash` 隐藏的工作现场，有两个方法
+
+* 用 `git stash apply` 恢复，用 `git stash drop` 删除 stash 内容
+* 用 `git stash pop` ，恢复的同时把 stash 内容也删除
+
+**思考**：因为 dev 分支是从 master 分支分出来的，所以在 master 分支上修改的 bug 也存在于 dev 分支上。现在就需要修复 dev 分支上的 bug。
+
+需要把`4c805e2 fix bug 101`这个提交所做的修改“复制”到 dev 分支 。注意：我们只想复制`4c805e2 fix bug 101`这个提交所做的修改，并不是把整个master分支merge过来。 Git 提供了一个`cherry-pick`命令 。
+
+```shell
+$ git branch
+* dev
+  master
+$ git cherry-pick 4c805e2
+[master 1d4b803] fix bug 101
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+```
+
+#### Feature 分支
+
+每添加一个新功能，最好新建一个 feature 分支，在上面开发后再进行合并，最后删除该 feature 分支。
+
+1、创建并切换至 feature 分支
+
+```shell
+$ git switch -c feature
+```
+
+2、开发完毕后，提交
+
+3、切回 dev 分支，准备合并，与 bug 分支类似，合并后删除。
+
+4、如果想要删除新功能
+
+```shell
+$ git branch -D feature
+```
+
+`feature-vulcan`分支还没有被合并，如果删除，将丢失掉修改，如果要强行删除，需要使用大写的`-D`参数。
+
+#### 多人协作
+
+当从远程仓库克隆时，实际上 Git 自动把本地的 `master` 分支和远程 `master` 分支对应起来，远程仓库的默认名称是 `origin` 。
+
+查看远程库的信息，用 `git remote` :
+
+```shell
+$ git remote
+origin
+```
+
+或者 `git remote -v` 显示更详细的信息 :
+
+```shell
+$ git remote -v
+origin  git@github.com:michaelliao/learngit.git (fetch)
+origin  git@github.com:michaelliao/learngit.git (push)
+```
+
+上面显示了可以抓取和推送的`origin`的地址。如果没有推送权限，就看不到push的地址。 
+
+**推送分支**
+
+把该分支上的所有本地提交推送到远程库。推送时，要指定本地分支，这样，Git就会把该分支推送到远程库对应的远程分支上：
+
+```shell
+$ git push origin master
+```
+
+如果要推送其他分支，比如`dev`，就改成：
+
+```shell
+$ git push origin dev
+```
+
+ 但是，并不是一定要把本地分支往远程推送 ：
+
+- `master` 分支是主分支，因此要时刻与远程同步；
+- `dev` 分支是开发分支，团队所有成员都需要在上面工作，所以也需要与远程同步；
+- bug 分支只用于在本地修复 bug，就没必要推到远程了，除非老板要看看你每周到底修复了几个bug；
+- feature 分支是否推到远程，取决于你是否和你的小伙伴合作在上面开发。
+
+**抓取分支**
+
+当在另一台电脑上克隆时：
+
+```shell
+$ git clone git@github.com:michaelliao/learngit.git
+```
+
+默认只能看见本地的 `master` 分支。
+
+创建远程 `origin` 的 `dev `分支到本地（本地和远程分支名称最好一致） ：
+
+```shell
+$ git checkout -b dev origin/dev
+```
+
+此时，就可以在 `dev `上继续修改，然后，时不时地把 `dev` 分支 `push` 到远程。但你也对同样的文件做了修改，并试图推送，会推送失败，因为产生了冲突。
+
+先用`git pull`把最新的提交从`origin/dev`抓下来，然后，在本地合并，解决冲突，再推送：
+
+1、制定本地 `dev `分支与远程 `origin/dev` 分支的链接 
+
+```shell
+$ git branch --set-upstream-to=origin/dev dev
+```
+
+2、pull
+
+```shell
+$ git pull
+```
+
+3、此时合并有冲突，需手动解决，解决方法与分支管理中的解决冲突完全一样。解决后，提交，再push
+
+####  Rebase 
+
+多人在同一支分支上协作，容易产生冲突。使用 `git rebase` 可以解决提交分叉的问题。
+
+**总结**
+
+- rebase操作可以把本地未push的分叉提交历史整理成直线；
+- rebase的目的是使得我们在查看历史提交的变化时更容易，因为分叉的提交需要三方对比。
+
+
+
+
 
